@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>나와 닮은 F1 드라이버 찾기</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+            backdrop-filter: blur(10px);
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .progress {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .question-container {
+            display: none;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .question-container.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .question {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 25px;
+            font-weight: 600;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .option {
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border: 2px solid transparent;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 15px;
+            color: #555;
+        }
+
+        .option:hover {
+            background: #667eea;
+            color: white;
+            transform: translateX(5px);
+        }
+
+        .option:active {
+            transform: scale(0.98);
+        }
+
+        .start-screen, .result-screen {
+            text-align: center;
+        }
+
+        .start-btn, .restart-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            border-radius: 30px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .start-btn:hover, .restart-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .result-screen {
+            display: none;
+        }
+
+        .driver-name {
+            font-size: 32px;
+            color: #667eea;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+
+        .driver-img {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            margin: 20px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+        }
+
+        .result-section {
+            text-align: left;
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .result-section h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .result-section p {
+            color: #555;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        .share-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .share-btn {
+            padding: 8px 20px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .share-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 시작 화면 -->
+        <div class="start-screen" id="startScreen">
+            <div class="driver-img">🏎️</div>
+            <h1>나와 닮은 F1 드라이버 찾기</h1>
+            <p class="subtitle">당신의 운전 성향과 가장 비슷한 F1 드라이버는 누구일까요?</p>
+            <button class="start-btn" onclick="startTest()">테스트 시작하기</button>
+        </div>
+
+        <!-- 질문 화면 -->
+        <div id="testScreen" style="display: none;">
+            <div class="progress-bar">
+                <div class="progress" id="progressBar"></div>
+            </div>
+            
+            <div class="question-container active" data-question="1">
+                <div class="question">Q1. 고속도로에서 운전할 때 당신의 스타일은?</div>
+                <div class="options">
+                    <div class="option" onclick="selectAnswer(1, 'A')">추월차선에서 속도를 즐기며 달린다</div>
+                    <div class="option" onclick="selectAnswer(1, 'B')">안정적으로 정속 주행을 유지한다</div>
+                    <div class="option" onclick="selectAnswer(1, 'C')">상황에 따라 유연하게 대처한다</div>
+                    <div class="option" onclick="selectAnswer(1, 'D')">앞차와의 간격을 좁히며 압박한다</div>
+                </div>
+            </div>
+
+            <div class="question-container" data-question="2">
+                <div class="question">Q2. 주차할 때 당신은?</div>
+                <div class="options">
+                    <div class="option" onclick="selectAnswer(2, 'A')">한 번에 완벽하게 주차한다</div>
+                    <div class="option" onclick="selectAnswer(2, 'B')">여러 번 조정해서 정확히 맞춘다</div>
+                    <div class="option" onclick="selectAnswer(2, 'C')">대충 들어가면 된다고 생각한다</div>
+                    <div class="option" onclick="selectAnswer(2, 'D')">좁은 공간도 과감하게 도전한다</div>
+                </div>
+            </div>
+
+            <div class="question-container" data-question="3">
+                <div class="question">Q3. 비 오는 날 운전은?</div>
+                <div class="options">
+                    <div class="option" onclick="selectAnswer(3, 'A')">오히려 더 짜릿하고 재미있다</div>
+                    <div class="option" onclick="selectAnswer(3, 'B')">최대한 조심스럽게 운전한다</div>
+                    <div class="option" onclick="selectAnswer(3, 'C')">평소와 똑같이 운전한다</div>
+                    <div class="option" onclick="selectAnswer(3, 'D')">가능하면 운전을 피한다</div>
+                </div>
+            </div>
+
+            <div class="question-container" data-question="4">
+                <div class="question">Q4. 팀 프로젝트에서 당신의 역할은?</div>
+                <div class="options">
+                    <div class="option" onclick="selectAnswer(4, 'A')">리더로서 모두를 이끈다</div>
+                    <div class="option" onclick="selectAnswer(4, 'B')">묵묵히 내 할 일을 완벽하게 한다</div>
+                    <div class="option" onclick="selectAnswer(4, 'C')">분위기 메이커로 팀을 화합시킨다</div>
+                    <div class="option" onclick="selectAnswer(4, 'D')">전략을 세우고 조언한다</div>
+                </div>
+            </div>
+
+            <div class="question-container" data-question="5">
+                <div class="question">Q5. 경쟁에서 지고 있을 때 당신은?</div>
+                <div class="options">
+                    <div class="option" onclick="selectAnswer(5, 'A')">끝까지 포기하지 않고 역전을 노린다</div>
+                    <div class="option" onclick="selectAnswer(5, 'B')">침착하게 다음 기회를 준비한다</div>
+                    <div class="option" onclick="selectAnswer(5, 'C')">감정적으로 흥분하기 쉽다</div>
+                    <div class="option" onclick="selectAnswer(5, 'D')">전략을 바꿔 새로운 시도를 한다</div>
+                </div>
+            </div>
+
+            <div class="question-container" data-question="6">
+                <div class="question">Q6. 새로운 도전에 대한 당신의 태도는?</div>
+                <div class="options">
+                    <div class="option" onclick="selectAnswer(6, 'A')">일단 부딪혀보고 생각한다</div>
+                    <div class="option" onclick="selectAnswer(6, 'B')">충분히 준비한 후 도전한다</div>
+                    <div class="option" onclick="selectAnswer(6, 'C')">리스크를 계산하고 신중히 접근한다</div>
+                    <div class="option" onclick="selectAnswer(6, 'D')">흥미로우면 바로 시작한다</div>
+                </div>
+            </div>
+
+            <div class="question-container" data-question="7">
+                <div class="question">Q7. 스트레스를 받을 때 당신은?</div>
+                <div class="options">
+                    <div class="option" onclick="selectAnswer(7, 'A')">운동이나 드라이브로 푼다</div>
+                    <div class="option" onclick="selectAnswer(7, 'B')">혼자만의 시간을 갖는다</div>
+                    <div class="option" onclick="selectAnswer(7, 'C')">친구들과 수다를 떤다</div>
+                    <div class="option" onclick="selectAnswer(7, 'D')">게임이나 시뮬레이션에 몰입한다</div>
+                </div>
+            </div>
+
+            <div class="question-container" data-question="8">
+                <div class="question">Q8. 당신이 가장 중요하게 생각하는 가치는?</div>
+                <div class="options">
+                    <div class="option" onclick="selectAnswer(8, 'A')">승리와 성공</div>
+                    <div class="option" onclick="selectAnswer(8, 'B')">일관성과 신뢰</div>
+                    <div class="option" onclick="selectAnswer(8, 'C')">즐거움과 열정</div>
+                    <div class="option" onclick="selectAnswer(8, 'D')">혁신과 도전</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 결과 화면 -->
+        <div class="result-screen" id="resultScreen">
+            <h1>당신과 닮은 F1 드라이버는...</h1>
+            <div class="driver-img" id="driverEmoji">🏁</div>
+            <div class="driver-name" id="driverName">Loading...</div>
+            
+            <div class="result-section">
+                <h3>🏎️ 운전 성향</h3>
+                <p id="drivingStyle"></p>
+            </div>
+            
+            <div class="result-section">
+                <h3>👥 주변에서 듣는 소리</h3>
+                <p id="whatOthersSay"></p>
+            </div>
+            
+            <div class="result-section">
+                <h3>⚠️ 유의점</h3>
+                <p id="cautions"></p>
+            </div>
+            
+            <div class="share-buttons">
+                <button class="share-btn" onclick="copyLink()">링크 복사</button>
+                <button class="restart-btn" onclick="restartTest()">다시 테스트</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentQuestion = 1;
+        const totalQuestions = 8;
+        let answers = {};
+
+        const drivers = {
+            'max': {
+                name: '막스 베르스타펜',
+                emoji: '🦁',
+                style: '공격적이고 과감한 운전 스타일. 빈틈없는 집중력과 압도적인 속도로 트랙을 지배합니다. 리스크를 두려워하지 않고 언제나 한계에 도전하는 타입입니다.',
+                others: '"너무 빠르다", "언제나 이기려고만 한다", "같이 있으면 긴장된다", "프로페셔널하다", "차가워 보이지만 열정적이다"',
+                caution: '때로는 속도를 줄이고 주변을 둘러볼 필요가 있습니다. 모든 순간을 경쟁으로 만들지 말고, 여유를 즐기는 법도 배워보세요. 완벽주의에서 벗어나 실수도 받아들이는 연습이 필요합니다.'
+            },
+            'lewis': {
+                name: '루이스 해밀턴',
+                emoji: '👑',
+                style: '경험과 직관의 완벽한 조화. 압박 상황에서도 침착함을 유지하며, 필요한 순간 폭발적인 속도를 보여줍니다. 꾸준함과 폭발력을 겸비한 스타일입니다.',
+                others: '"리더십이 뛰어나다", "항상 긍정적이다", "스타일리시하다", "원칙이 확고하다", "영감을 준다"',
+                caution: '너무 많은 것을 혼자 짊어지려 하지 마세요. 때로는 다른 사람들에게 도움을 요청하는 것도 중요합니다. 완벽을 추구하다 번아웃이 올 수 있으니 적절한 휴식을 취하세요.'
+            },
+            'charles': {
+                name: '샤를 르클레르',
+                emoji: '🔥',
+                style: '직관적이고 감각적인 운전. 순간적인 판단력이 뛰어나며 아름다운 주행 라인을 그려냅니다. 감정이 풍부하고 열정적이지만 때로는 그것이 약점이 되기도 합니다.',
+                others: '"열정적이다", "감정 기복이 있다", "재능이 뛰어나다", "귀엽다", "너무 서두른다"',
+                caution: '감정 조절이 중요합니다. 흥분했을 때 실수가 나올 수 있으니 심호흡하고 침착함을 유지하세요. 장기적인 관점에서 생각하는 연습이 필요합니다.'
+            },
+            'lando': {
+                name: '란도 노리스',
+                emoji: '🎮',
+                style: '젊고 역동적인 스타일. 디지털 네이티브답게 빠른 반응속도와 적응력을 보여줍니다. 재미있게 즐기면서도 진지할 때는 확실히 집중하는 타입입니다.',
+                others: '"재미있다", "밝고 긍정적이다", "겸손하다", "친구같다", "아직 어리다"',
+                caution: '때로는 진지함이 필요합니다. 모든 것을 농담으로 넘기지 말고 중요한 순간에는 집중하세요. 자신감을 더 가져도 좋습니다.'
+            },
+            'fernando': {
+                name: '페르난도 알론소',
+                emoji: '🦊',
+                style: '노련한 전략가. 최고의 차가 아니어도 최대한의 성능을 뽑아냅니다. 경험에서 나오는 판단력과 절대 포기하지 않는 투지를 가진 스타일입니다.',
+                others: '"끈질기다", "영리하다", "절대 포기하지 않는다", "노련하다", "고집이 세다"',
+                caution: '새로운 방식도 받아들일 필요가 있습니다. 경험에만 의존하지 말고 변화를 수용하세요. 때로는 젊은 세대의 의견도 경청하는 자세가 필요합니다.'
+            },
+            'carlos': {
+                name: '카를로스 사인즈',
+                emoji: '🌶️',
+                style: '안정적이고 꾸준한 퍼포먼스. 화려하지는 않지만 실수가 적고 신뢰할 수 있는 스타일입니다. 팀플레이어로서 균형잡힌 접근을 보여줍니다.',
+                others: '"믿음직하다", "꾸준하다", "겸손하다", "팀플레이어다", "조용히 일한다"',
+                caution: '때로는 더 과감해질 필요가 있습니다. 안전한 선택만 하다보면 기회를 놓칠 수 있습니다. 자신의 능력을 더 어필하는 것도 중요합니다.'
+            },
+            'george': {
+                name: '조지 러셀',
+                emoji: '🎯',
+                style: '계산적이고 정확한 운전. 데이터와 분석을 중시하며 리스크를 최소화합니다. 일관성 있는 퍼포먼스와 전략적 사고가 강점입니다.',
+                others: '"모범생 같다", "예의바르다", "계획적이다", "신중하다", "너무 진지하다"',
+                caution: '모든 것을 계획할 수는 없습니다. 때로는 직관을 믿고 즉흥적인 결정도 필요합니다. 규칙에서 벗어나 창의적으로 생각해보세요.'
+            },
+            'sergio': {
+                name: '세르히오 페레즈',
+                emoji: '🛡️',
+                style: '타이어 관리의 달인. 인내심이 강하고 장기전에 강합니다. 팀을 위해 희생할 줄 알며, 방어 운전의 전문가입니다.',
+                others: '"팀플레이어다", "인내심이 강하다", "조용하다", "희생정신이 있다", "존재감이 약하다"',
+                caution: '자신을 위한 시간도 필요합니다. 항상 남을 위해 희생하지 말고 자신의 목표도 추구하세요. 더 적극적으로 자신을 표현해도 좋습니다.'
+            }
+        };
+
+        function startTest() {
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('testScreen').style.display = 'block';
+            updateProgressBar();
+        }
+
+        function selectAnswer(questionNum, answer) {
+            answers[questionNum] = answer;
+            
+            if (questionNum < totalQuestions) {
+                document.querySelector(`[data-question="${questionNum}"]`).classList.remove('active');
+                setTimeout(() => {
+                    document.querySelector(`[data-question="${questionNum + 1}"]`).classList.add('active');
+                    currentQuestion++;
+                    updateProgressBar();
+                }, 300);
+            } else {
+                showResult();
+            }
+        }
+
+        function updateProgressBar() {
+            const progress = (currentQuestion / totalQuestions) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+        }
+
+        function calculateResult() {
+            const scores = {
+                'max': 0,
+                'lewis': 0,
+                'charles': 0,
+                'lando': 0,
+                'fernando': 0,
+                'carlos': 0,
+                'george': 0,
+                'sergio': 0
+            };
+
+            // 각 답변에 따른 점수 부여
+            const scoringMap = {
+                1: { 'A': ['max', 'charles'], 'B': ['george', 'carlos'], 'C': ['lewis', 'fernando'], 'D': ['max', 'sergio'] },
+                2: { 'A': ['lewis', 'max'], 'B': ['george', 'carlos'], 'C': ['lando', 'charles'], 'D': ['fernando', 'max'] },
+                3: { 'A': ['max', 'lewis'], 'B': ['george', 'sergio'], 'C': ['fernando', 'carlos'], 'D': ['lando', 'charles'] },
+                4: { 'A': ['lewis', 'max'], 'B': ['carlos', 'sergio'], 'C': ['lando', 'charles'], 'D': ['fernando', 'george'] },
+                5: { 'A': ['max', 'fernando'], 'B': ['lewis', 'george'], 'C': ['charles', 'lando'], 'D': ['fernando', 'carlos'] },
+                6: { 'A': ['max', 'charles'], 'B': ['george', 'lewis'], 'C': ['fernando', 'carlos'], 'D': ['lando', 'charles'] },
+                7: { 'A': ['max', 'lewis'], 'B': ['george', 'carlos'], 'C': ['lando', 'charles'], 'D': ['fernando', 'sergio'] },
+                8: { 'A': ['max', 'lewis'], 'B': ['george', 'sergio'], 'C': ['lando', 'charles'], 'D': ['fernando', 'carlos'] }
+            };
+
+            for (let q in answers) {
+                const answer = answers[q];
+                const driversToScore = scoringMap[q][answer];
+                driversToScore.forEach(driver => {
+                    scores[driver] += 1;
+                });
+            }
+
+            // 가장 높은 점수를 받은 드라이버 찾기
+            let maxScore = 0;
+            let selectedDriver = 'max';
+            for (let driver in scores) {
+                if (scores[driver] > maxScore) {
+                    maxScore = scores[driver];
+                    selectedDriver = driver;
+                }
+            }
+
+            return selectedDriver;
+        }
+
+        function showResult() {
+            const driverKey = calculateResult();
+            const driver = drivers[driverKey];
+            
+            document.getElementById('testScreen').style.display = 'none';
+            document.getElementById('resultScreen').style.display = 'block';
+            
+            document.getElementById('driverEmoji').textContent = driver.emoji;
+            document.getElementById('driverName').textContent = driver.name;
+            document.getElementById('drivingStyle').textContent = driver.style;
+            document.getElementById('whatOthersSay').textContent = driver.others;
+            document.getElementById('cautions').textContent = driver.caution;
+        }
+
+        function restartTest() {
+            currentQuestion = 1;
+            answers = {};
+            
+            document.getElementById('resultScreen').style.display = 'none';
+            document.getElementById('startScreen').style.display = 'block';
+            
+            // 모든 질문 초기화
+            document.querySelectorAll('.question-container').forEach((el, index) => {
+                el.classList.remove('active');
+                if (index === 0) el.classList.add('active');
+            });
+            
+            updateProgressBar();
+        }
+
+        function copyLink() {
+            alert('링크가 복사되었습니다! (실제로는 구현되지 않음)');
+        }
+    </script>
+</body>
+</html>
