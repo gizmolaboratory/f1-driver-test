@@ -1,509 +1,709 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>나와 닮은 F1 드라이버 찾기</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>나와 닮은 F1 드라이버 찾기</title>
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
+  <!-- (선택) Noto Sans KR: 시스템 고딕 스택에 대한 보조 폰트 -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
 
-        .container {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            max-width: 600px;
-            width: 100%;
-            padding: 40px;
-            backdrop-filter: blur(10px);
-            animation: slideIn 0.5s ease-out;
-        }
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    /* 고딕(산세리프) 통일: 시스템 고딕 스택 + Noto Sans KR 보조 */
+    :root {
+      --font-gothic: "Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",
+                     -apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+    }
+    body {
+      font-family: var(--font-gothic) !important;
+      background: linear-gradient(135deg,#ff6b6b 0%,#ffd93d 25%,#6bcf7f 50%,#4ecdc4 75%,#667eea 100%);
+      background-size: 400% 400%;
+      animation: racingGradient 6s ease infinite;
+      min-height:100vh; display:flex; justify-content:center; align-items:center; padding:20px;
+      cursor:url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><text y="20" font-size="20">🏎️</text></svg>'), auto;
+    }
+    @keyframes racingGradient { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
 
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
+    .container { max-width:800px; width:100%; min-height:80vh; position:relative; }
 
-        h1 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 10px;
-            font-size: 28px;
-        }
+    .language-toggle {
+      position:fixed; top:30px; right:30px; z-index:1000; display:flex;
+      background:rgba(255,255,255,0.9); border-radius:25px; overflow:hidden; box-shadow:0 5px 15px rgba(0,0,0,0.1);
+    }
+    .lang-btn { padding:8px 16px; background:transparent; border:none; cursor:pointer; font-weight:700; color:#666; transition:.2s; }
+    .lang-btn.active { background:#ff0000; color:#fff; }
 
-        .subtitle {
-            text-align: center;
-            color: #666;
-            margin-bottom: 30px;
-            font-size: 14px;
-        }
+    .start-screen { text-align:center; min-height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; }
+    .main-title {
+      font-family: var(--font-gothic) !important;
+      font-size:clamp(3rem, 8vw, 6rem); font-weight:900; color:#fff; letter-spacing:-.02em; margin-bottom:2rem;
+      text-shadow:0 0 30px rgba(255,255,255,0.5), 0 0 60px rgba(255,0,0,0.3);
+      animation: glow 2s ease-in-out infinite alternate;
+    }
+    @keyframes glow {
+      from { text-shadow:0 0 30px rgba(255,255,255,0.5), 0 0 60px rgba(255,0,0,0.3); }
+      to   { text-shadow:0 0 40px rgba(255,255,255,0.8), 0 0 80px rgba(255,0,0,0.6); }
+    }
+    .sub-title { font-size:clamp(1.1rem,3vw,1.8rem); color:rgba(255,255,255,0.92); margin-bottom:3rem; text-shadow:0 2px 10px rgba(0,0,0,0.3); }
 
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: #e0e0e0;
-            border-radius: 10px;
-            margin-bottom: 30px;
-            overflow: hidden;
-        }
+    .track-container { position:relative; width:300px; height:60px; margin:2rem auto; }
+    .racing-track { width:100%; height:8px; background:#333; border-radius:4px; position:relative; overflow:hidden; }
+    .track-lines {
+      position:absolute; top:50%; left:0; right:0; height:2px;
+      background:repeating-linear-gradient(90deg,#fff 0px,#fff 10px,transparent 10px,transparent 20px);
+      transform:translateY(-50%); animation:trackMove 2s linear infinite;
+    }
+    @keyframes trackMove { from { transform:translateY(-50%) translateX(0) } to { transform:translateY(-50%) translateX(-20px) } }
 
-        .progress {
-            height: 100%;
-            background: linear-gradient(90deg, #667eea, #764ba2);
-            border-radius: 10px;
-            transition: width 0.3s ease;
-            width: 0%;
-        }
+    .start-btn {
+      font-family: var(--font-gothic) !important;
+      background:linear-gradient(135deg,#ff0000,#ff6600); color:#fff; border:none; padding:18px 42px; font-size:1.05rem; font-weight:800;
+      border-radius:50px; cursor:pointer; transition:.25s; letter-spacing:.06em; box-shadow:0 10px 30px rgba(255,0,0,0.28); position:relative; overflow:hidden;
+      text-transform:uppercase;
+    }
+    .start-btn::before { content:''; position:absolute; top:0; left:-100%; width:100%; height:100%; background:linear-gradient(90deg,transparent, rgba(255,255,255,0.3), transparent); transition:left .6s; }
+    .start-btn:hover::before { left:100%; }
+    .start-btn:hover { transform:translateY(-3px); box-shadow:0 18px 36px rgba(255,0,0,0.35); }
 
-        .question-container {
-            display: none;
-            animation: fadeIn 0.3s ease-in;
-        }
+    .loading-screen { display:none; text-align:center; min-height:100vh; flex-direction:column; justify-content:center; align-items:center; color:#fff; }
+    .loading-title { font-size:2rem; font-weight:800; margin-bottom:2rem; text-shadow:0 0 20px rgba(255,255,255,0.5); }
+    .pit-to-track { position:relative; width:500px; max-width:90vw; height:100px; margin:1.5rem auto; background:linear-gradient(180deg,#444 0%,#666 50%,#444 100%); border-radius:10px; overflow:hidden; }
+    .pit-lane { position:absolute; left:0; top:20px; width:150px; height:60px; background:#333; border-radius:5px; }
+    .main-track { position:absolute; right:0; top:10px; width:300px; height:80px; background:#222; border-radius:10px; }
+    .racing-car { position:absolute; top:35px; left:20px; font-size:2.2rem; animation:pitToTrack 3s ease-in-out infinite; z-index:10; }
+    @keyframes pitToTrack { 0%{left:20px; transform:scale(1)} 50%{left:200px; transform:scale(1.2)} 100%{left:400px; transform:scale(0.8)} }
+    .loading-text { font-size:1rem; margin-top:.5rem; animation:textPulse 1.5s ease-in-out infinite; color:rgba(255,255,255,0.88); }
+    @keyframes textPulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
 
-        .question-container.active {
-            display: block;
-        }
+    .test-screen { background:rgba(255, 255, 255, 0.95); border-radius:20px; box-shadow:0 20px 60px rgba(0, 0, 0, 0.28); padding:32px; backdrop-filter:blur(10px); animation:slideIn .45s ease-out; display:none; }
+    @keyframes slideIn { from { opacity:0; transform:translateY(24px) } to { opacity:1; transform:translateY(0) } }
+    .progress-bar { width:100%; height:12px; background:#e8e8e8; border-radius:10px; margin-bottom:24px; overflow:hidden; position:relative; }
+    .progress { height:100%; background:linear-gradient(90deg,#ff0000,#ff6600,#ffcc00,#00c853); border-radius:10px; transition:width .3s; width:0%; position:relative; }
+    .progress::after { content:'🏎️'; position:absolute; right:-15px; top:50%; transform:translateY(-50%); font-size:18px; }
 
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
+    .question-container { display:none; animation:fadeIn .25s ease-in; }
+    .question-container.active { display:block; }
+    @keyframes fadeIn { from {opacity:0} to {opacity:1} }
+    .question { font-size:18px; color:#222; margin-bottom:18px; font-weight:800; }
+    .options { display:flex; flex-direction:column; gap:10px; }
+    .option { padding:14px 18px; background:#f8f9fa; border:2px solid transparent; border-radius:12px; cursor:pointer; transition:.25s; font-size:15px; color:#444; position:relative; overflow:hidden; }
+    .option::before { content:''; position:absolute; top:0; left:-100%; width:100%; height:100%; background:linear-gradient(90deg,transparent, rgba(255,255,255,0.45), transparent); transition:left .6s; }
+    .option:hover::before { left:100%; }
+    .option:hover { background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; transform:translateX(4px); border-left:4px solid #ff0000; }
 
-        .question {
-            font-size: 18px;
-            color: #333;
-            margin-bottom: 25px;
-            font-weight: 600;
-        }
+    .result-screen { background:rgba(255, 255, 255, 0.95); border-radius:20px; box-shadow:0 20px 60px rgba(0,0,0,0.28); padding:32px; backdrop-filter:blur(10px); text-align:center; display:none; animation:slideIn .45s ease-out; }
+    .result-title { font-size:1.8rem; color:#ff0000; margin-bottom:1.2rem; font-weight:900; letter-spacing:.06em; }
+    .driver-img {
+      width:160px; height:160px; border-radius:50%;
+      background:linear-gradient(135deg,#ff0000,#ff6600);
+      margin:16px auto; display:flex; align-items:center; justify-content:center;
+      border:4px solid #fff; box-shadow:0 10px 30px rgba(0,0,0,0.2); overflow:hidden; position:relative;
+    }
+    .driver-photo { width:100%; height:100%; object-fit:cover; border-radius:50%; display:none; }
+    .driver-name { font-size:1.8rem; color:#ff0000; margin:14px 0 6px; font-weight:900; text-shadow:0 2px 10px rgba(0,0,0,0.06); }
+    .result-section { text-align:left; margin:16px 0; padding:16px; background:linear-gradient(135deg,#f8f9fa,#edf1f5); border-radius:14px; border-left:5px solid #ff0000; box-shadow:0 5px 14px rgba(0,0,0,0.08); }
+    .result-section h3 { color:#ff0000; margin-bottom:10px; font-size:16px; display:flex; align-items:center; gap:8px; font-weight:900; }
+    .result-section p { color:#444; line-height:1.75; font-size:14.5px; }
 
-        .options {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
+    .share-buttons { display:flex; gap:10px; justify-content:center; margin-top:18px; flex-wrap:wrap; }
+    .share-btn, .restart-btn {
+      font-family: var(--font-gothic) !important;
+      padding:10px 18px; border:2px solid #ff0000; background:#fff; color:#ff0000; border-radius:22px; cursor:pointer; font-size:13.5px; font-weight:800;
+      transition:.2s; position:relative; overflow:hidden;
+    }
+    .restart-btn { background:linear-gradient(135deg,#ff0000,#ff6600); color:#fff; }
+    .share-btn::before, .restart-btn::before { content:''; position:absolute; top:0; left:-100%; width:100%; height:100%; background:#ff0000; transition:left .25s; z-index:-1; }
+    .share-btn:hover::before { left:0; }
+    .share-btn:hover, .restart-btn:hover { color:#fff; transform:translateY(-2px); box-shadow:0 8px 20px rgba(255, 0, 0, 0.25); }
 
-        .option {
-            padding: 15px 20px;
-            background: #f8f9fa;
-            border: 2px solid transparent;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 15px;
-            color: #555;
-        }
+    .copy-success { position:fixed; top:20px; right:20px; background:#4CAF50; color:#fff; padding:12px 20px; border-radius:25px; font-size:14px; transform:translateX(300px); transition:transform .25s; z-index:1000; }
+    .copy-success.show { transform:translateX(0); }
 
-        .option:hover {
-            background: #667eea;
-            color: white;
-            transform: translateX(5px);
-        }
-
-        .option:active {
-            transform: scale(0.98);
-        }
-
-        .start-screen, .result-screen {
-            text-align: center;
-        }
-
-        .start-btn, .restart-btn {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            border: none;
-            padding: 15px 40px;
-            font-size: 18px;
-            border-radius: 30px;
-            cursor: pointer;
-            margin-top: 20px;
-            transition: all 0.3s ease;
-            font-weight: 600;
-        }
-
-        .start-btn:hover, .restart-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
-        }
-
-        .result-screen {
-            display: none;
-        }
-
-        .driver-name {
-            font-size: 32px;
-            color: #667eea;
-            margin: 20px 0;
-            font-weight: bold;
-        }
-
-        .driver-img {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            margin: 20px auto;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 48px;
-        }
-
-        .result-section {
-            text-align: left;
-            margin: 20px 0;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 10px;
-        }
-
-        .result-section h3 {
-            color: #667eea;
-            margin-bottom: 10px;
-            font-size: 16px;
-        }
-
-        .result-section p {
-            color: #555;
-            line-height: 1.6;
-            font-size: 14px;
-        }
-
-        .share-buttons {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin-top: 20px;
-        }
-
-        .share-btn {
-            padding: 8px 20px;
-            border: 2px solid #667eea;
-            background: white;
-            color: #667eea;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s ease;
-        }
-
-        .share-btn:hover {
-            background: #667eea;
-            color: white;
-        }
-    </style>
+    @media (max-width:768px){
+      .container{ padding:16px; }
+      .main-title{ font-size:2.8rem; }
+      .sub-title{ font-size:1rem; }
+      .track-container{ width:250px; }
+      .pit-to-track{ width:300px; }
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <!-- 시작 화면 -->
-        <div class="start-screen" id="startScreen">
-            <div class="driver-img">🏎️</div>
-            <h1>나와 닮은 F1 드라이버 찾기</h1>
-            <p class="subtitle">당신의 운전 성향과 가장 비슷한 F1 드라이버는 누구일까요?</p>
-            <button class="start-btn" onclick="startTest()">테스트 시작하기</button>
-        </div>
+  <!-- 언어 토글 -->
+  <div class="language-toggle">
+    <button class="lang-btn active" onclick="setLanguage('ko', this)">한국어</button>
+    <button class="lang-btn" onclick="setLanguage('en', this)">English</button>
+  </div>
 
-        <!-- 질문 화면 -->
-        <div id="testScreen" style="display: none;">
-            <div class="progress-bar">
-                <div class="progress" id="progressBar"></div>
-            </div>
-            
-            <div class="question-container active" data-question="1">
-                <div class="question">Q1. 고속도로에서 운전할 때 당신의 스타일은?</div>
-                <div class="options">
-                    <div class="option" onclick="selectAnswer(1, 'A')">추월차선에서 속도를 즐기며 달린다</div>
-                    <div class="option" onclick="selectAnswer(1, 'B')">안정적으로 정속 주행을 유지한다</div>
-                    <div class="option" onclick="selectAnswer(1, 'C')">상황에 따라 유연하게 대처한다</div>
-                    <div class="option" onclick="selectAnswer(1, 'D')">앞차와의 간격을 좁히며 압박한다</div>
-                </div>
-            </div>
+  <div class="copy-success" id="copySuccess">
+    <span data-ko="링크가 복사되었습니다! 🏁" data-en="Link copied! 🏁">링크가 복사되었습니다! 🏁</span>
+  </div>
 
-            <div class="question-container" data-question="2">
-                <div class="question">Q2. 주차할 때 당신은?</div>
-                <div class="options">
-                    <div class="option" onclick="selectAnswer(2, 'A')">한 번에 완벽하게 주차한다</div>
-                    <div class="option" onclick="selectAnswer(2, 'B')">여러 번 조정해서 정확히 맞춘다</div>
-                    <div class="option" onclick="selectAnswer(2, 'C')">대충 들어가면 된다고 생각한다</div>
-                    <div class="option" onclick="selectAnswer(2, 'D')">좁은 공간도 과감하게 도전한다</div>
-                </div>
-            </div>
+  <div class="container">
+    <!-- 시작 화면 -->
+    <div class="start-screen" id="startScreen">
+      <h1 class="main-title">MY IDENTITY</h1>
+      <p class="sub-title" data-ko="나와 닮은 F1 드라이버 찾기" data-en="Find Your F1 Driver Twin">나와 닮은 F1 드라이버 찾기</p>
 
-            <div class="question-container" data-question="3">
-                <div class="question">Q3. 비 오는 날 운전은?</div>
-                <div class="options">
-                    <div class="option" onclick="selectAnswer(3, 'A')">오히려 더 짜릿하고 재미있다</div>
-                    <div class="option" onclick="selectAnswer(3, 'B')">최대한 조심스럽게 운전한다</div>
-                    <div class="option" onclick="selectAnswer(3, 'C')">평소와 똑같이 운전한다</div>
-                    <div class="option" onclick="selectAnswer(3, 'D')">가능하면 운전을 피한다</div>
-                </div>
-            </div>
+      <div class="track-container">
+        <div class="racing-track"><div class="track-lines"></div></div>
+      </div>
 
-            <div class="question-container" data-question="4">
-                <div class="question">Q4. 팀 프로젝트에서 당신의 역할은?</div>
-                <div class="options">
-                    <div class="option" onclick="selectAnswer(4, 'A')">리더로서 모두를 이끈다</div>
-                    <div class="option" onclick="selectAnswer(4, 'B')">묵묵히 내 할 일을 완벽하게 한다</div>
-                    <div class="option" onclick="selectAnswer(4, 'C')">분위기 메이커로 팀을 화합시킨다</div>
-                    <div class="option" onclick="selectAnswer(4, 'D')">전략을 세우고 조언한다</div>
-                </div>
-            </div>
-
-            <div class="question-container" data-question="5">
-                <div class="question">Q5. 경쟁에서 지고 있을 때 당신은?</div>
-                <div class="options">
-                    <div class="option" onclick="selectAnswer(5, 'A')">끝까지 포기하지 않고 역전을 노린다</div>
-                    <div class="option" onclick="selectAnswer(5, 'B')">침착하게 다음 기회를 준비한다</div>
-                    <div class="option" onclick="selectAnswer(5, 'C')">감정적으로 흥분하기 쉽다</div>
-                    <div class="option" onclick="selectAnswer(5, 'D')">전략을 바꿔 새로운 시도를 한다</div>
-                </div>
-            </div>
-
-            <div class="question-container" data-question="6">
-                <div class="question">Q6. 새로운 도전에 대한 당신의 태도는?</div>
-                <div class="options">
-                    <div class="option" onclick="selectAnswer(6, 'A')">일단 부딪혀보고 생각한다</div>
-                    <div class="option" onclick="selectAnswer(6, 'B')">충분히 준비한 후 도전한다</div>
-                    <div class="option" onclick="selectAnswer(6, 'C')">리스크를 계산하고 신중히 접근한다</div>
-                    <div class="option" onclick="selectAnswer(6, 'D')">흥미로우면 바로 시작한다</div>
-                </div>
-            </div>
-
-            <div class="question-container" data-question="7">
-                <div class="question">Q7. 스트레스를 받을 때 당신은?</div>
-                <div class="options">
-                    <div class="option" onclick="selectAnswer(7, 'A')">운동이나 드라이브로 푼다</div>
-                    <div class="option" onclick="selectAnswer(7, 'B')">혼자만의 시간을 갖는다</div>
-                    <div class="option" onclick="selectAnswer(7, 'C')">친구들과 수다를 떤다</div>
-                    <div class="option" onclick="selectAnswer(7, 'D')">게임이나 시뮬레이션에 몰입한다</div>
-                </div>
-            </div>
-
-            <div class="question-container" data-question="8">
-                <div class="question">Q8. 당신이 가장 중요하게 생각하는 가치는?</div>
-                <div class="options">
-                    <div class="option" onclick="selectAnswer(8, 'A')">승리와 성공</div>
-                    <div class="option" onclick="selectAnswer(8, 'B')">일관성과 신뢰</div>
-                    <div class="option" onclick="selectAnswer(8, 'C')">즐거움과 열정</div>
-                    <div class="option" onclick="selectAnswer(8, 'D')">혁신과 도전</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 결과 화면 -->
-        <div class="result-screen" id="resultScreen">
-            <h1>당신과 닮은 F1 드라이버는...</h1>
-            <div class="driver-img" id="driverEmoji">🏁</div>
-            <div class="driver-name" id="driverName">Loading...</div>
-            
-            <div class="result-section">
-                <h3>🏎️ 운전 성향</h3>
-                <p id="drivingStyle"></p>
-            </div>
-            
-            <div class="result-section">
-                <h3>👥 주변에서 듣는 소리</h3>
-                <p id="whatOthersSay"></p>
-            </div>
-            
-            <div class="result-section">
-                <h3>⚠️ 유의점</h3>
-                <p id="cautions"></p>
-            </div>
-            
-            <div class="share-buttons">
-                <button class="share-btn" onclick="copyLink()">링크 복사</button>
-                <button class="restart-btn" onclick="restartTest()">다시 테스트</button>
-            </div>
-        </div>
+      <button class="start-btn" onclick="showLoading()">
+        <span data-ko="🏁 테스트 시작하기" data-en="🏁 Start Test">🏁 테스트 시작하기</span>
+      </button>
     </div>
 
-    <script>
-        let currentQuestion = 1;
-        const totalQuestions = 8;
-        let answers = {};
+    <!-- 로딩 화면 -->
+    <div class="loading-screen" id="loadingScreen">
+      <h2 class="loading-title" data-ko="드라이버 준비 중..." data-en="Driver Ready...">드라이버 준비 중...</h2>
+      <div class="pit-to-track"><div class="pit-lane"></div><div class="main-track"></div><div class="racing-car">🏎️</div></div>
+      <div class="loading-text" data-ko="피트에서 메인 트랙으로 이동 중..." data-en="Moving from pit to main track...">피트에서 메인 트랙으로 이동 중...</div>
+    </div>
 
-        const drivers = {
-            'max': {
-                name: '막스 베르스타펜',
-                emoji: '🦁',
-                style: '공격적이고 과감한 운전 스타일. 빈틈없는 집중력과 압도적인 속도로 트랙을 지배합니다. 리스크를 두려워하지 않고 언제나 한계에 도전하는 타입입니다.',
-                others: '"너무 빠르다", "언제나 이기려고만 한다", "같이 있으면 긴장된다", "프로페셔널하다", "차가워 보이지만 열정적이다"',
-                caution: '때로는 속도를 줄이고 주변을 둘러볼 필요가 있습니다. 모든 순간을 경쟁으로 만들지 말고, 여유를 즐기는 법도 배워보세요. 완벽주의에서 벗어나 실수도 받아들이는 연습이 필요합니다.'
-            },
-            'lewis': {
-                name: '루이스 해밀턴',
-                emoji: '👑',
-                style: '경험과 직관의 완벽한 조화. 압박 상황에서도 침착함을 유지하며, 필요한 순간 폭발적인 속도를 보여줍니다. 꾸준함과 폭발력을 겸비한 스타일입니다.',
-                others: '"리더십이 뛰어나다", "항상 긍정적이다", "스타일리시하다", "원칙이 확고하다", "영감을 준다"',
-                caution: '너무 많은 것을 혼자 짊어지려 하지 마세요. 때로는 다른 사람들에게 도움을 요청하는 것도 중요합니다. 완벽을 추구하다 번아웃이 올 수 있으니 적절한 휴식을 취하세요.'
-            },
-            'charles': {
-                name: '샤를 르클레르',
-                emoji: '🔥',
-                style: '직관적이고 감각적인 운전. 순간적인 판단력이 뛰어나며 아름다운 주행 라인을 그려냅니다. 감정이 풍부하고 열정적이지만 때로는 그것이 약점이 되기도 합니다.',
-                others: '"열정적이다", "감정 기복이 있다", "재능이 뛰어나다", "귀엽다", "너무 서두른다"',
-                caution: '감정 조절이 중요합니다. 흥분했을 때 실수가 나올 수 있으니 심호흡하고 침착함을 유지하세요. 장기적인 관점에서 생각하는 연습이 필요합니다.'
-            },
-            'lando': {
-                name: '란도 노리스',
-                emoji: '🎮',
-                style: '젊고 역동적인 스타일. 디지털 네이티브답게 빠른 반응속도와 적응력을 보여줍니다. 재미있게 즐기면서도 진지할 때는 확실히 집중하는 타입입니다.',
-                others: '"재미있다", "밝고 긍정적이다", "겸손하다", "친구같다", "아직 어리다"',
-                caution: '때로는 진지함이 필요합니다. 모든 것을 농담으로 넘기지 말고 중요한 순간에는 집중하세요. 자신감을 더 가져도 좋습니다.'
-            },
-            'fernando': {
-                name: '페르난도 알론소',
-                emoji: '🦊',
-                style: '노련한 전략가. 최고의 차가 아니어도 최대한의 성능을 뽑아냅니다. 경험에서 나오는 판단력과 절대 포기하지 않는 투지를 가진 스타일입니다.',
-                others: '"끈질기다", "영리하다", "절대 포기하지 않는다", "노련하다", "고집이 세다"',
-                caution: '새로운 방식도 받아들일 필요가 있습니다. 경험에만 의존하지 말고 변화를 수용하세요. 때로는 젊은 세대의 의견도 경청하는 자세가 필요합니다.'
-            },
-            'carlos': {
-                name: '카를로스 사인즈',
-                emoji: '🌶️',
-                style: '안정적이고 꾸준한 퍼포먼스. 화려하지는 않지만 실수가 적고 신뢰할 수 있는 스타일입니다. 팀플레이어로서 균형잡힌 접근을 보여줍니다.',
-                others: '"믿음직하다", "꾸준하다", "겸손하다", "팀플레이어다", "조용히 일한다"',
-                caution: '때로는 더 과감해질 필요가 있습니다. 안전한 선택만 하다보면 기회를 놓칠 수 있습니다. 자신의 능력을 더 어필하는 것도 중요합니다.'
-            },
-            'george': {
-                name: '조지 러셀',
-                emoji: '🎯',
-                style: '계산적이고 정확한 운전. 데이터와 분석을 중시하며 리스크를 최소화합니다. 일관성 있는 퍼포먼스와 전략적 사고가 강점입니다.',
-                others: '"모범생 같다", "예의바르다", "계획적이다", "신중하다", "너무 진지하다"',
-                caution: '모든 것을 계획할 수는 없습니다. 때로는 직관을 믿고 즉흥적인 결정도 필요합니다. 규칙에서 벗어나 창의적으로 생각해보세요.'
-            },
-            'sergio': {
-                name: '세르히오 페레즈',
-                emoji: '🛡️',
-                style: '타이어 관리의 달인. 인내심이 강하고 장기전에 강합니다. 팀을 위해 희생할 줄 알며, 방어 운전의 전문가입니다.',
-                others: '"팀플레이어다", "인내심이 강하다", "조용하다", "희생정신이 있다", "존재감이 약하다"',
-                caution: '자신을 위한 시간도 필요합니다. 항상 남을 위해 희생하지 말고 자신의 목표도 추구하세요. 더 적극적으로 자신을 표현해도 좋습니다.'
-            }
-        };
+    <!-- 질문 화면 -->
+    <div class="test-screen" id="testScreen">
+      <div class="progress-bar"><div class="progress" id="progressBar"></div></div>
 
-        function startTest() {
-            document.getElementById('startScreen').style.display = 'none';
-            document.getElementById('testScreen').style.display = 'block';
-            updateProgressBar();
+      <!-- Q1 -->
+      <div class="question-container active" data-question="1">
+        <div class="question">
+          <span data-ko="🏁 Q1. 고속도로에서 운전할 때 당신의 스타일은?" data-en="🏁 Q1. What's your driving style on the highway?">🏁 Q1. 고속도로에서 운전할 때 당신의 스타일은?</span>
+        </div>
+        <div class="options">
+          <div class="option" onclick="selectAnswer(1,'A')">
+            <span data-ko="추월차선에서 속도를 즐기며 달린다" data-en="Enjoy speed in the fast lane">추월차선에서 속도를 즐기며 달린다</span>
+          </div>
+          <div class="option" onclick="selectAnswer(1,'B')">
+            <span data-ko="안정적으로 정속 주행을 유지한다" data-en="Maintain a steady cruising speed">안정적으로 정속 주행을 유지한다</span>
+          </div>
+          <div class="option" onclick="selectAnswer(1,'C')">
+            <span data-ko="다른 차들 움직임 보면서 전략적으로 차선 변경한다" data-en="Change lanes strategically based on traffic">다른 차들 움직임 보면서 전략적으로 차선 변경한다</span>
+          </div>
+          <div class="option" onclick="selectAnswer(1,'D')">
+            <span data-ko="앞차와의 간격을 좁히며 압박한다" data-en="Close the gap and pressure the car ahead">앞차와의 간격을 좁히며 압박한다</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q2 -->
+      <div class="question-container" data-question="2">
+        <div class="question">
+          <span data-ko="🚗 Q2. 주차할 때 당신은?" data-en="🚗 Q2. When parking, you are?">🚗 Q2. 주차할 때 당신은?</span>
+        </div>
+        <div class="options">
+          <div class="option" onclick="selectAnswer(2,'A')">
+            <span data-ko="한 번에 완벽하게 주차한다" data-en="Park perfectly in one go">한 번에 완벽하게 주차한다</span>
+          </div>
+          <div class="option" onclick="selectAnswer(2,'B')">
+            <span data-ko="여러 번 조정해서 정확히 맞춘다" data-en="Adjust multiple times for precision">여러 번 조정해서 정확히 맞춘다</span>
+          </div>
+          <div class="option" onclick="selectAnswer(2,'C')">
+            <span data-ko="대충 들어가면 된다고 생각한다" data-en="Roughly parked is good enough">대충 들어가면 된다고 생각한다</span>
+          </div>
+          <div class="option" onclick="selectAnswer(2,'D')">
+            <span data-ko="좁은 공간도 과감하게 도전한다" data-en="Boldly take tight spaces">좁은 공간도 과감하게 도전한다</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q3 -->
+      <div class="question-container" data-question="3">
+        <div class="question">
+          <span data-ko="🌧️ Q3. 비 오는 날 운전은?" data-en="🌧️ Q3. Driving on rainy days?">🌧️ Q3. 비 오는 날 운전은?</span>
+        </div>
+        <div class="options">
+          <div class="option" onclick="selectAnswer(3,'A')">
+            <span data-ko="오히려 더 짜릿하고 재미있다" data-en="Even more thrilling and fun">오히려 더 짜릿하고 재미있다</span>
+          </div>
+          <div class="option" onclick="selectAnswer(3,'B')">
+            <span data-ko="최대한 조심스럽게 운전한다" data-en="Drive as carefully as possible">최대한 조심스럽게 운전한다</span>
+          </div>
+          <div class="option" onclick="selectAnswer(3,'C')">
+            <span data-ko="평소와 똑같이 운전한다" data-en="Drive the same as usual">평소와 똑같이 운전한다</span>
+          </div>
+          <div class="option" onclick="selectAnswer(3,'D')">
+            <span data-ko="가능하면 운전을 피한다" data-en="Avoid driving if possible">가능하면 운전을 피한다</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q4 -->
+      <div class="question-container" data-question="4">
+        <div class="question">
+          <span data-ko="👥 Q4. 앞차가 갑자기 끼어들면 당신은?" data-en="👥 Q4. When a car suddenly cuts in front, you?">👥 Q4. 앞차가 갑자기 끼어들면 당신은?</span>
+        </div>
+        <div class="options">
+          <div class="option" onclick="selectAnswer(4,'A')">
+            <span data-ko="경적을 울리며 바로 반응한다" data-en="Honk and react immediately">경적을 울리며 바로 반응한다</span>
+          </div>
+          <div class="option" onclick="selectAnswer(4,'B')">
+            <span data-ko="그냥 속도를 줄이고 양보한다" data-en="Slow down and yield">그냥 속도를 줄이고 양보한다</span>
+          </div>
+          <div class="option" onclick="selectAnswer(4,'C')">
+            <span data-ko="추월 기회만 기다린다" data-en="Wait for a safe overtake chance">추월 기회만 기다린다</span>
+          </div>
+          <div class="option" onclick="selectAnswer(4,'D')">
+            <span data-ko="조용히 차 안에서 혼자 화낸다" data-en="Get mad quietly but keep driving calmly">조용히 차 안에서 혼자 화낸다</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q5 -->
+      <div class="question-container" data-question="5">
+        <div class="question">
+          <span data-ko="🔥 Q5. 내비게이션이 두 가지 길을 추천한다면?" data-en="🔥 Q5. If navigation suggests two routes, you?">🔥 Q5. 내비게이션이 두 가지 길을 추천한다면?</span>
+        </div>
+        <div class="options">
+          <div class="option" onclick="selectAnswer(5,'A')">
+            <span data-ko="빨리 가는 길을 선택한다" data-en="Choose the fastest route">빨리 가는 길을 선택한다</span>
+          </div>
+          <div class="option" onclick="selectAnswer(5,'B')">
+            <span data-ko="익숙한 길이 더 편하다" data-en="Prefer the familiar route">익숙한 길이 더 편하다</span>
+          </div>
+          <div class="option" onclick="selectAnswer(5,'C')">
+            <span data-ko="차 막힘 피할 수 있는 길을 계산한다" data-en="Pick the least congested route">차 막힘 피할 수 있는 길을 계산한다</span>
+          </div>
+          <div class="option" onclick="selectAnswer(5,'D')">
+            <span data-ko="경치 좋은 길이 더 끌린다" data-en="Pick the scenic route">경치 좋은 길이 더 끌린다</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q6 -->
+      <div class="question-container" data-question="6">
+        <div class="question">
+          <span data-ko="✨ Q6. 장거리 운전 중 졸음이 온다면?" data-en="✨ Q6. On a long drive when sleepy, you?">✨ Q6. 장거리 운전 중 졸음이 온다면?</span>
+        </div>
+        <div class="options">
+          <div class="option" onclick="selectAnswer(6,'A')">
+            <span data-ko="음악을 크게 틀고 계속 간다" data-en="Turn up the music and keep going">음악을 크게 틀고 계속 간다</span>
+          </div>
+          <div class="option" onclick="selectAnswer(6,'B')">
+            <span data-ko="휴게소 들러서 바로 쉰다" data-en="Pull over and rest at a rest area">휴게소 들러서 바로 쉰다</span>
+          </div>
+          <div class="option" onclick="selectAnswer(6,'C')">
+            <span data-ko="카페인으로 버틴다" data-en="Rely on caffeine">카페인으로 버틴다</span>
+          </div>
+          <div class="option" onclick="selectAnswer(6,'D')">
+            <span data-ko="동승자와 대화하며 졸음을 쫓는다" data-en="Chat with a passenger to stay awake">동승자와 대화하며 졸음을 쫓는다</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q7 -->
+      <div class="question-container" data-question="7">
+        <div class="question">
+          <span data-ko="😤 Q7. 황색 신호를 만났을 때 당신의 선택은?" data-en="😤 Q7. At a yellow light, you?">😤 Q7. 황색 신호를 만났을 때 당신의 선택은?</span>
+        </div>
+        <div class="options">
+          <div class="option" onclick="selectAnswer(7,'A')">
+            <span data-ko="바로 속도 높여서 통과한다" data-en="Speed up to pass">바로 속도 높여서 통과한다</span>
+          </div>
+          <div class="option" onclick="selectAnswer(7,'B')">
+            <span data-ko="미리 멈출 준비를 한다" data-en="Prepare to stop">미리 멈출 준비를 한다</span>
+          </div>
+          <div class="option" onclick="selectAnswer(7,'C')">
+            <span data-ko="주변 차량 보고 상황에 맞게 판단한다" data-en="Decide based on surrounding traffic">주변 차량 보고 상황에 맞게 판단한다</span>
+          </div>
+          <div class="option" onclick="selectAnswer(7,'D')">
+            <span data-ko="급정거하지 않도록 조심한다" data-en="Avoid sudden braking safely">급정거하지 않도록 조심한다</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q8 -->
+      <div class="question-container" data-question="8">
+        <div class="question">
+          <span data-ko="💎 Q8. 교통 체증에 갇혔을 때 당신은?" data-en="💎 Q8. In a traffic jam, you?">💎 Q8. 교통 체증에 갇혔을 때 당신은?</span>
+        </div>
+        <div class="options">
+          <div class="option" onclick="selectAnswer(8,'A')">
+            <span data-ko="차선 바꾸면서 조금이라도 빨리 가려 한다" data-en="Change lanes to gain any advantage">차선 바꾸면서 조금이라도 빨리 가려 한다</span>
+          </div>
+          <div class="option" onclick="selectAnswer(8,'B')">
+            <span data-ko="그냥 음악 들으면서 여유롭게 기다린다" data-en="Wait calmly with music on">그냥 음악 들으면서 여유롭게 기다린다</span>
+          </div>
+          <div class="option" onclick="selectAnswer(8,'C')">
+            <span data-ko="우회로를 바로 검색한다" data-en="Immediately search for a detour">우회로를 바로 검색한다</span>
+          </div>
+          <div class="option" onclick="selectAnswer(8,'D')">
+            <span data-ko="어쩔 수 없으니 스트레스를 접고 운전한다" data-en="Let go of stress and just drive safely">어쩔 수 없으니 스트레스를 접고 운전한다</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 결과 화면 -->
+    <div class="result-screen" id="resultScreen">
+      <h1 class="result-title" data-ko="🏆 당신과 닮은 F1 드라이버는..." data-en="🏆 Your F1 Driver Twin is...">🏆 당신과 닮은 F1 드라이버는...</h1>
+      <div class="driver-img" id="driverImg">
+        <!-- 이모지 제거: 사진만 표시 -->
+        <img id="driverPhoto" class="driver-photo" alt="Driver photo"/>
+      </div>
+      <div class="driver-name" id="driverName">Loading...</div>
+
+      <div class="result-section">
+        <h3>🏎️ <span data-ko="운전 성향" data-en="Driving Style">운전 성향</span></h3>
+        <p id="drivingStyle"></p>
+      </div>
+
+      <div class="result-section">
+        <h3>👥 <span data-ko="주변에서 듣는 소리" data-en="What Others Say">주변에서 듣는 소리</span></h3>
+        <p id="whatOthersSay"></p>
+      </div>
+
+      <div class="result-section">
+        <h3>⚠️ <span data-ko="유의점" data-en="Cautions">유의점</span></h3>
+        <p id="cautions"></p>
+      </div>
+
+      <div class="share-buttons">
+        <button class="share-btn" id="btnShareNative" onclick="shareNative()">
+          <span data-ko="📲 시스템 공유" data-en="📲 System Share">📲 시스템 공유</span>
+        </button>
+
+        <button class="share-btn" onclick="shareToX()">
+          <span data-ko="𝕏 에 공유" data-en="Share on 𝕏">𝕏 에 공유</span>
+        </button>
+
+        <button class="share-btn" onclick="shareToFacebook()">
+          <span data-ko="Facebook 공유" data-en="Share on Facebook">Facebook 공유</span>
+        </button>
+
+        <button class="share-btn" onclick="shareToLinkedIn()">
+          <span data-ko="LinkedIn 공유" data-en="Share on LinkedIn">LinkedIn 공유</span>
+        </button>
+
+        <!-- 카카오톡: SDK 초기화되면 자동 표시 -->
+        <button class="share-btn" id="btnKakao" style="display:none" onclick="shareToKakao()">
+          <span data-ko="KakaoTalk 공유" data-en="Share on KakaoTalk">KakaoTalk 공유</span>
+        </button>
+
+        <button class="share-btn" onclick="copyLink()">
+          <span data-ko="🔗 링크 복사" data-en="🔗 Copy Link">🔗 링크 복사</span>
+        </button>
+
+        <button class="restart-btn" onclick="restartTest()">
+          <span data-ko="🔄 다시 테스트" data-en="🔄 Restart Test">🔄 다시 테스트</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== 상태 =====
+    let currentQuestion = 1;
+    const totalQuestions = 8;
+    let answers = {};
+    let currentLanguage = 'ko';
+    let _lastShare = { key: null, url: null, text: null, title: null };
+
+    // ===== 드라이버 데이터 =====
+    const drivers = {
+      max:{ name:{ko:'막스 베르스타펜', en:'Max Verstappen'}, emoji:'🦁',
+        photo:'https://upload.wikimedia.org/wikipedia/commons/7/75/Max_Verstappen_2017_Malaysia_3.jpg',
+        style:{ko:'공격적이고 과감한 운전. 빈틈없는 집중력과 압도적인 페이스.', en:'Aggressive and bold. Relentless focus and overwhelming pace.'},
+        others:{ko:'"빠르다", "이기고자 하는 의지가 강하다", "프로페셔널하다"', en:'"Fast", "Strong will to win", "Very professional"'},
+        caution:{ko:'모든 순간을 경쟁으로 만들지 말고, 때로는 속도를 낮춰 여유를 가지기.', en:'Don’t turn every moment into a race; sometimes slow down and breathe.'}
+      },
+      lewis:{ name:{ko:'루이스 해밀턴', en:'Lewis Hamilton'}, emoji:'👑',
+        photo:'https://upload.wikimedia.org/wikipedia/commons/a/ac/Lewis_Hamilton_2022_S%C3%A3o_Paulo_Grand_Prix_%2852498120773%29_%28cropped%29.jpg',
+        style:{ko:'경험과 직관의 조화. 필요할 때 폭발하는 스피드.', en:'Harmony of experience and intuition. Explodes with speed when needed.'},
+        others:{ko:'"리더십 있다", "항상 침착하다", "원칙이 확고하다"', en:'"Shows leadership", "Calm under pressure", "Strong principles"'},
+        caution:{ko:'모든 걸 혼자 짊어지지 말고 도움을 요청하기.', en:'Don’t carry everything alone; ask for help.'}
+      },
+      charles:{ name:{ko:'샤를 르클레르', en:'Charles Leclerc'}, emoji:'🔥',
+        photo:'https://upload.wikimedia.org/wikipedia/commons/8/8e/Charles_Leclerc_2024.jpg',
+        style:{ko:'직관적이고 감각적인 라인. 순간 판단력이 뛰어남.', en:'Intuitive, flowing lines. Excellent split-second judgment.'},
+        others:{ko:'"열정적", "재능 뛰어남", "가끔 서두른다"', en:'"Passionate", "Highly talented", "Sometimes hasty"'},
+        caution:{ko:'감정이 올라올 때 호흡 조절과 침착 유지.', en:'When emotions rise, breathe and stay composed.'}
+      },
+      lando:{ name:{ko:'란도 노리스', en:'Lando Norris'}, emoji:'🎮',
+        photo:'https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/2024-08-25_Motorsport%2C_Formel_1%2C_Gro%C3%9Fer_Preis_der_Niederlande_2024_STP_4016_by_Stepro_%28cropped%29.jpg/640px-2024-08-25_Motorsport%2C_Formel_1%2C_Gro%C3%9Fer_Preis_der_Niederlande_2024_STP_4016_by_Stepro_%28cropped%29.jpg',
+        style:{ko:'유연하고 반응 빠름. 적응력 높은 네이티브 스타일.', en:'Flexible and reactive. Highly adaptable.'},
+        others:{ko:'"밝다", "재치 있다", "겸손하다"', en:'"Bright", "Witty", "Humble"'},
+        caution:{ko:'중요한 순간에는 농담보다 집중이 우선.', en:'In key moments, focus over jokes.'}
+      },
+      fernando:{ name:{ko:'페르난도 알론소', en:'Fernando Alonso'}, emoji:'🦊',
+        photo:'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Alonso_2016.jpg/640px-Alonso_2016.jpg',
+        style:{ko:'노련한 전략가. 장기전과 변수 대응 강함.', en:'Seasoned strategist. Strong in long runs and variables.'},
+        others:{ko:'"끈질기다", "영리하다", "포기하지 않는다"', en:'"Persistent", "Clever", "Never gives up"'},
+        caution:{ko:'경험만 고집하지 말고 변화도 수용하기.', en:'Don’t rely only on experience; embrace change.'}
+      },
+      carlos:{ name:{ko:'카를로스 사인츠', en:'Carlos Sainz'}, emoji:'🌶️',
+        photo:'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/Carlos_Sainz_Jr_Motorland_2014.jpg/1024px-Carlos_Sainz_Jr_Motorland_2014.jpg',
+        style:{ko:'안정적이고 실수 적음. 꾸준한 퍼포먼스.', en:'Stable, low-error, consistent performance.'},
+        others:{ko:'"믿음직", "꾸준", "팀플레이어"', en:'"Reliable", "Consistent", "Team player"'},
+        caution:{ko:'가끔은 더 과감해야 기회를 잡음.', en:'Sometimes be bolder to seize chances.'}
+      },
+      george:{ name:{ko:'조지 러셀', en:'George Russell'}, emoji:'🎯',
+        photo:'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/FIA_F1_Austria_2022_George_Russell_%282%29_%28cropped%29.jpg/800px-FIA_F1_Austria_2022_George_Russell_%282%29_%28cropped%29.jpg',
+        style:{ko:'계산적이고 정확. 리스크 최소화.', en:'Calculated and precise. Minimizes risk.'},
+        others:{ko:'"계획적", "예의바름", "신중함"', en:'"Well-planned", "Polite", "Cautious"'},
+        caution:{ko:'모든 걸 계획할 수는 없음. 직관도 신뢰하기.', en:'You can’t plan everything; trust intuition too.'}
+      },
+      sergio:{ name:{ko:'세르히오 페레즈', en:'Sergio Perez'}, emoji:'🛡️',
+        photo:'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Sergio_P%C3%A9rez_2019_%28cropped%29.jpg/640px-Sergio_P%C3%A9rez_2019_%28cropped%29.jpg',
+        style:{ko:'타이어/자원 관리의 달인. 인내심 강함.', en:'Master of tire/resource management. Patient.'},
+        others:{ko:'"팀플레이", "인내심", "조용한 헌신"', en:'"Team player", "Patient", "Quiet dedication"'},
+        caution:{ko:'항상 희생만 하지 말고 본인 목표도 챙기기.', en:'Don’t always sacrifice; pursue your own goals too.'}
+      }
+    };
+
+    // ===== 언어 =====
+    function setLanguage(lang, btnEl){
+      currentLanguage = lang;
+      document.documentElement.lang = lang;
+      document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));
+      if(btnEl) btnEl.classList.add('active');
+      document.querySelectorAll('[data-ko][data-en]').forEach(el=>{
+        el.textContent = el.getAttribute(`data-${lang}`);
+      });
+    }
+
+    // ===== 내비게이션 =====
+    function showLoading(){
+      document.getElementById('startScreen').style.display='none';
+      const loading = document.getElementById('loadingScreen');
+      loading.style.display='flex';
+      setTimeout(()=>{
+        loading.style.display='none';
+        document.getElementById('testScreen').style.display='block';
+        updateProgressBar();
+      },1200);
+    }
+
+    function selectAnswer(questionNum, answer){
+      answers[questionNum] = answer;
+      if(questionNum < totalQuestions){
+        document.querySelector(`[data-question="${questionNum}"]`).classList.remove('active');
+        setTimeout(()=>{
+          document.querySelector(`[data-question="${questionNum+1}"]`).classList.add('active');
+          currentQuestion++;
+          updateProgressBar();
+        },180);
+      } else {
+        setTimeout(showResult, 260);
+      }
+    }
+
+    function updateProgressBar(){
+      const progress = (currentQuestion/totalQuestions)*100;
+      document.getElementById('progressBar').style.width = progress + '%';
+    }
+
+    // ===== 스코어링(가중 + 결정 타이브레이커) =====
+    const scoringMap = {
+      1:{ A:['max','charles','lando'], B:['george','carlos','sergio'], C:['lewis','fernando','lando'], D:['max','fernando'] },
+      2:{ A:['lewis','george'],        B:['george','carlos','sergio'], C:['lando','charles'],         D:['max','fernando'] },
+      3:{ A:['max','lando','fernando'],B:['george','sergio','carlos'], C:['lewis','carlos'],          D:['george','sergio'] },
+      4:{ A:['max','charles'],         B:['george','sergio','carlos'], C:['lewis','fernando'],        D:['carlos','lando'] },
+      5:{ A:['max','lewis'],           B:['carlos','george'],          C:['fernando','george'],       D:['lando','charles','sergio'] },
+      6:{ A:['max','charles'],         B:['sergio','george','carlos'], C:['sergio','george'],         D:['lando','lewis'] },
+      7:{ A:['max','charles'],         B:['george','carlos','sergio'], C:['lewis','fernando'],        D:['lewis','sergio','carlos'] },
+      8:{ A:['max','charles'],         B:['carlos','sergio'],          C:['lewis','fernando','george'], D:['lando','sergio','carlos'] }
+    };
+
+    function calculateResult(){
+      const scores = { max:0, lewis:0, charles:0, lando:0, fernando:0, carlos:0, george:0, sergio:0 };
+      const weights = {1:2,2:1,3:2,4:1,5:1,6:1,7:2,8:1}; // 핵심 Q1,Q3,Q7 가중 2
+
+      for(let q=1; q<=totalQuestions; q++){
+        const ans = answers[q];
+        if(!ans || !scoringMap[q] || !scoringMap[q][ans]) continue;
+        const w = weights[q] || 1;
+        scoringMap[q][ans].forEach(d => { scores[d] += w; });
+      }
+
+      const maxScore = Math.max(...Object.values(scores));
+      let candidates = Object.keys(scores).filter(k => scores[k] === maxScore);
+      if(candidates.length === 1) return candidates[0];
+
+      // 타이브레이커 1: 핵심문항 득점(Q1,Q3,Q7)
+      const keyQs = [1,3,7];
+      const keyScore = (driver) => keyQs.reduce((s,kq)=>{
+        const ans = answers[kq];
+        return s + (ans && scoringMap[kq] && scoringMap[kq][ans] && scoringMap[kq][ans].includes(driver) ? 1 : 0);
+      },0);
+      let bestKey = Math.max(...candidates.map(d=>keyScore(d)));
+      candidates = candidates.filter(d=>keyScore(d)===bestKey);
+      if(candidates.length === 1) return candidates[0];
+
+      // 타이브레이커 2: 초기 성향 반영(낮은 문항번호 가중)
+      const earlyBias = (driver)=>{
+        let s=0;
+        for(let q=1; q<=totalQuestions; q++){
+          const ans = answers[q];
+          if(ans && scoringMap[q] && scoringMap[q][ans] && scoringMap[q][ans].includes(driver)){
+            s += (9 - q); // Q1=+8 ... Q8=+1
+          }
         }
+        return s;
+      };
+      let bestEarly = Math.max(...candidates.map(d=>earlyBias(d)));
+      candidates = candidates.filter(d=>earlyBias(d)===bestEarly);
+      if(candidates.length === 1) return candidates[0];
 
-        function selectAnswer(questionNum, answer) {
-            answers[questionNum] = answer;
-            
-            if (questionNum < totalQuestions) {
-                document.querySelector(`[data-question="${questionNum}"]`).classList.remove('active');
-                setTimeout(() => {
-                    document.querySelector(`[data-question="${questionNum + 1}"]`).classList.add('active');
-                    currentQuestion++;
-                    updateProgressBar();
-                }, 300);
-            } else {
-                showResult();
-            }
-        }
+      // 타이브레이커 3: 고정 우선순위
+      const finalPriority = ['max','lewis','charles','fernando','lando','george','carlos','sergio'];
+      candidates.sort((a,b)=>finalPriority.indexOf(a)-finalPriority.indexOf(b));
+      return candidates[0];
+    }
 
-        function updateProgressBar() {
-            const progress = (currentQuestion / totalQuestions) * 100;
-            document.getElementById('progressBar').style.width = progress + '%';
-        }
+    // ===== 결과 렌더 =====
+    function showResult(){
+      const key = calculateResult();
+      showResultForKey(key);
+    }
+    function showResultForKey(key){
+      const d = drivers[key];
+      if(!d) return;
 
-        function calculateResult() {
-            const scores = {
-                'max': 0,
-                'lewis': 0,
-                'charles': 0,
-                'lando': 0,
-                'fernando': 0,
-                'carlos': 0,
-                'george': 0,
-                'sergio': 0
-            };
+      document.getElementById('testScreen').style.display='none';
+      document.getElementById('resultScreen').style.display='block';
 
-            // 각 답변에 따른 점수 부여
-            const scoringMap = {
-                1: { 'A': ['max', 'charles'], 'B': ['george', 'carlos'], 'C': ['lewis', 'fernando'], 'D': ['max', 'sergio'] },
-                2: { 'A': ['lewis', 'max'], 'B': ['george', 'carlos'], 'C': ['lando', 'charles'], 'D': ['fernando', 'max'] },
-                3: { 'A': ['max', 'lewis'], 'B': ['george', 'sergio'], 'C': ['fernando', 'carlos'], 'D': ['lando', 'charles'] },
-                4: { 'A': ['lewis', 'max'], 'B': ['carlos', 'sergio'], 'C': ['lando', 'charles'], 'D': ['fernando', 'george'] },
-                5: { 'A': ['max', 'fernando'], 'B': ['lewis', 'george'], 'C': ['charles', 'lando'], 'D': ['fernando', 'carlos'] },
-                6: { 'A': ['max', 'charles'], 'B': ['george', 'lewis'], 'C': ['fernando', 'carlos'], 'D': ['lando', 'charles'] },
-                7: { 'A': ['max', 'lewis'], 'B': ['george', 'carlos'], 'C': ['lando', 'charles'], 'D': ['fernando', 'sergio'] },
-                8: { 'A': ['max', 'lewis'], 'B': ['george', 'sergio'], 'C': ['lando', 'charles'], 'D': ['fernando', 'carlos'] }
-            };
+      const photo = document.getElementById('driverPhoto');
+      photo.style.display='none';
+      photo.src = d.photo;
+      photo.onload = ()=>{ photo.style.display='block'; };
+      photo.onerror = ()=>{ photo.style.display='none'; };
 
-            for (let q in answers) {
-                const answer = answers[q];
-                const driversToScore = scoringMap[q][answer];
-                driversToScore.forEach(driver => {
-                    scores[driver] += 1;
-                });
-            }
+      document.getElementById('driverName').textContent = d.name[currentLanguage];
+      document.getElementById('drivingStyle').textContent = d.style[currentLanguage];
+      document.getElementById('whatOthersSay').textContent = d.others[currentLanguage];
+      document.getElementById('cautions').textContent = d.caution[currentLanguage];
 
-            // 가장 높은 점수를 받은 드라이버 찾기
-            let maxScore = 0;
-            let selectedDriver = 'max';
-            for (let driver in scores) {
-                if (scores[driver] > maxScore) {
-                    maxScore = scores[driver];
-                    selectedDriver = driver;
-                }
-            }
+      updateShareButtons(key);
+      window.scrollTo({ top:0, behavior:'smooth' });
+    }
 
-            return selectedDriver;
-        }
+    function restartTest(){
+      currentQuestion = 1; answers = {};
+      document.getElementById('resultScreen').style.display='none';
+      document.getElementById('startScreen').style.display='block';
+      document.querySelectorAll('.question-container').forEach((el,idx)=>{
+        el.classList.remove('active'); if(idx===0) el.classList.add('active');
+      });
+      updateProgressBar();
+      // 공유버튼 네이티브 표시/숨김 초기화
+      const btnNative = document.getElementById('btnShareNative'); if(btnNative) btnNative.style.display = (navigator.share ? 'inline-block':'none');
+      const btnKakao  = document.getElementById('btnKakao'); if(btnKakao) btnKakao.style.display = (typeof Kakao !== 'undefined' && Kakao.isInitialized && Kakao.isInitialized()) ? 'inline-block' : 'none';
+    }
 
-        function showResult() {
-            const driverKey = calculateResult();
-            const driver = drivers[driverKey];
-            
-            document.getElementById('testScreen').style.display = 'none';
-            document.getElementById('resultScreen').style.display = 'block';
-            
-            document.getElementById('driverEmoji').textContent = driver.emoji;
-            document.getElementById('driverName').textContent = driver.name;
-            document.getElementById('drivingStyle').textContent = driver.style;
-            document.getElementById('whatOthersSay').textContent = driver.others;
-            document.getElementById('cautions').textContent = driver.caution;
-        }
+    // ===== 공유 유틸 =====
+    function buildShareUrl(driverKey) {
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.set('driver', driverKey);
+        url.searchParams.set('lang', currentLanguage || 'ko');
+        return url.toString();
+      } catch (e) {
+        const sep = window.location.href.includes('?') ? '&' : '?';
+        return window.location.href + sep + 'driver=' + encodeURIComponent(driverKey) + '&lang=' + encodeURIComponent(currentLanguage || 'ko');
+      }
+    }
+    function buildShareText(driverKey) {
+      const d = drivers[driverKey];
+      if (!d) return currentLanguage === 'en' ? 'Find your F1 Driver Twin!' : '나와 닮은 F1 드라이버는 누구일까?';
+      const name = d.name[currentLanguage] || d.name.ko;
+      return currentLanguage === 'en' ? `My F1 Driver Twin: ${name} 🏁` : `내 F1 드라이버 도플갱어: ${name} 🏁`;
+    }
+    function updateShareButtons(driverKey) {
+      const title = currentLanguage === 'en' ? 'Find Your F1 Driver Twin' : '나와 닮은 F1 드라이버 찾기';
+      const text  = buildShareText(driverKey);
+      const url   = buildShareUrl(driverKey);
+      _lastShare = { key: driverKey, url, text, title };
 
-        function restartTest() {
-            currentQuestion = 1;
-            answers = {};
-            
-            document.getElementById('resultScreen').style.display = 'none';
-            document.getElementById('startScreen').style.display = 'block';
-            
-            // 모든 질문 초기화
-            document.querySelectorAll('.question-container').forEach((el, index) => {
-                el.classList.remove('active');
-                if (index === 0) el.classList.add('active');
-            });
-            
-            updateProgressBar();
-        }
+      const btnNative = document.getElementById('btnShareNative');
+      if (btnNative) btnNative.style.display = (navigator.share ? 'inline-block' : 'none');
 
-        function copyLink() {
-            alert('링크가 복사되었습니다! (실제로는 구현되지 않음)');
-        }
-    </script>
+      const btnKakao = document.getElementById('btnKakao');
+      if (btnKakao) {
+        const ready = (typeof Kakao !== 'undefined') && Kakao.isInitialized && Kakao.isInitialized();
+        btnKakao.style.display = ready ? 'inline-block' : 'none';
+      }
+    }
+    async function shareNative() {
+      if (!navigator.share || !_lastShare.url) return;
+      try { await navigator.share({ title:_lastShare.title, text:_lastShare.text, url:_lastShare.url }); } catch(e) {}
+    }
+    function openPopup(url) {
+      const w = 640, h = 640;
+      const y = window.top.outerHeight / 2 + window.top.screenY - (h/2);
+      const x = window.top.outerWidth  / 2 + window.top.screenX - (w/2);
+      window.open(url, '_blank', `popup=yes,width=${w},height=${h},top=${y},left=${x}`);
+    }
+    function shareToX() {
+      const t = encodeURIComponent(_lastShare.text || '');
+      const u = encodeURIComponent(_lastShare.url || window.location.href);
+      openPopup(`https://twitter.com/intent/tweet?text=${t}&url=${u}`);
+    }
+    function shareToFacebook() {
+      const u = encodeURIComponent(_lastShare.url || window.location.href);
+      openPopup(`https://www.facebook.com/sharer/sharer.php?u=${u}`);
+    }
+    function shareToLinkedIn() {
+      const u = encodeURIComponent(_lastShare.url || window.location.href);
+      openPopup(`https://www.linkedin.com/sharing/share-offsite/?url=${u}`);
+    }
+    function shareToKakao() {
+      if (typeof Kakao === 'undefined' || !Kakao.isInitialized || !Kakao.isInitialized()) return;
+      const title = _lastShare.title;
+      const desc  = _lastShare.text;
+      const link  = { mobileWebUrl:_lastShare.url, webUrl:_lastShare.url };
+      const imageUrl = 'https://upload.wikimedia.org/wikipedia/commons/3/3e/Formula_one_flag.svg';
+      Kakao.Share.sendDefault({
+        objectType: 'feed',
+        content: { title, description: desc, imageUrl, link },
+        buttons: [ { title: currentLanguage === 'en' ? 'Open' : '열어보기', link } ]
+      });
+    }
+    async function copyLink() {
+      const shareUrl = _lastShare.url || window.location.href;
+      try { await navigator.clipboard.writeText(shareUrl); showCopySuccess(); }
+      catch (err) {
+        const textArea = document.createElement('textarea');
+        textArea.value = shareUrl; document.body.appendChild(textArea);
+        textArea.select(); document.execCommand('copy'); document.body.removeChild(textArea);
+        showCopySuccess();
+      }
+    }
+    function showCopySuccess(){
+      const el=document.getElementById('copySuccess');
+      el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),1800);
+    }
+
+    // ===== 쿼리 파라미터로 결과 바로 보기(공유 링크 복원) =====
+    function initFromQuery(){
+      const params = new URLSearchParams(location.search);
+      const lang = params.get('lang');
+      const driver = params.get('driver');
+      if (lang && (lang==='ko' || lang==='en')) {
+        setLanguage(lang, document.querySelector(`.lang-btn${lang==='ko'?':first-child':':last-child'}`));
+      } else {
+        // 초기 네이티브/카카오 버튼 표시 상태만 맞추기
+        const btnNative = document.getElementById('btnShareNative'); if(btnNative) btnNative.style.display = (navigator.share ? 'inline-block':'none');
+      }
+      if (driver && drivers[driver]) {
+        // 질문 스킵하고 결과 즉시 렌더
+        document.getElementById('startScreen').style.display='none';
+        showResultForKey(driver);
+      }
+    }
+
+    // 초기화
+    document.addEventListener('DOMContentLoaded', ()=>{
+      updateProgressBar();
+      initFromQuery();
+    });
+  </script>
+
+  <!-- (옵션) Kakao SDK: 도메인 등록 + 자바스크립트 키 필요 -->
+  <!-- 준비가 되면 아래 주석 해제하고 YOUR_KAKAO_JAVASCRIPT_KEY를 교체하세요.
+  <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.6.0/kakao.min.js" crossorigin="anonymous"></script>
+  <script> Kakao.init('YOUR_KAKAO_JAVASCRIPT_KEY'); </script>
+  -->
 </body>
 </html>
